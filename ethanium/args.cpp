@@ -17,7 +17,7 @@ required arguments:
   --encrypt / --decrypt  :: Encrypt/decrypt file(s)
   --password             :: Password for encryption/decryption
 
-security options for encryption:
+security options for argon2id:
   --interactive          :: Fastest, insecure        [64 MiB of RAM required]
   --moderate             :: Fast, moderate security  [256 MiB of RAM required]
   --sensitive            :: Slowest, secure          [1024 MiB of RAM required]
