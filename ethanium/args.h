@@ -6,7 +6,6 @@
 typedef struct {
     int          help;
     int          mode;       /* 0 - encryption ; 1 - decryption */
-    std::string  passwd;
     int          security;   /* 0 - interactive ; 1 - moderate ; 2 - sensitive */
     int          meshkey;
     size_t       filescount;

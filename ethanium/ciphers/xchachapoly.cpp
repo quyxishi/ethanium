@@ -141,10 +141,9 @@ namespace XChaChaPoly1305 {
         
         char _csecurity;
         rfile.get(_csecurity);
-
         int _security = _csecurity - '0';
 
-        if (!(_security >= 0 && _security <= 2)) {
+        if (_security < 0 || _security > 2) {
             rfile.close();
             return result{ 8, rfilesize, Crypto::FetchRuntime(runtimestart) };
         }

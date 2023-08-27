@@ -15,7 +15,6 @@ positional arguments:
 
 required arguments:
   --encrypt / --decrypt  :: Encrypt/decrypt file(s)
-  --password             :: Password for encryption/decryption
 
 security options for argon2id:
   --interactive          :: Fastest, insecure        [64 MiB of RAM required]
@@ -33,22 +32,14 @@ optional arguments:
 ArgsParser::ArgsParser() {
     args.help = 0;
     args.mode = -1;
-    args.passwd = "\0";
     args.security = -1;
     args.meshkey = 0;
 }
 
 bool ArgsParser::StructArgs(int argc, char* argv[]) {
-    bool pass = false;
-
     // todo: better way to parse args
 
     for (int i = 1; i != argc; i++) {
-        if (pass) {
-            pass = false;
-            continue;
-        }
-
         if (!strcmp(argv[i], "--help")) {
             if (args.help == 1) {
                 logc::error("arguments: --help already specified");
@@ -90,17 +81,6 @@ bool ArgsParser::StructArgs(int argc, char* argv[]) {
             args.meshkey = 1;
         }
 
-        else if (!strcmp(argv[i], "--password")) {
-            if (i + 1 != argc) {
-                args.passwd = argv[i + 1];
-                pass = true;
-            }
-            else {
-                logc::error("arguments: --password: excepted value after argument");
-                return false;
-            }
-        }
-
         else {
             args.filesv.push_back(argv[i]);
         }
@@ -116,11 +96,6 @@ bool ArgsParser::StructArgs(int argc, char* argv[]) {
 
     if (args.mode == -1) {
         logc::error("arguments: excepted --encrypt/--decrypt argument");
-        return false;
-    }
-
-    if (args.passwd == "\0") {
-        logc::error("arguments: excepted --password argument");
         return false;
     }
 

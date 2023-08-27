@@ -5,8 +5,6 @@
 #include <ciphers/xchachapoly.h>
 
 
-// todo: rework password prompt
-
 int main(int argc, char* argv[]) {
     ArgsParser argsparser;
 
@@ -55,8 +53,10 @@ int main(int argc, char* argv[]) {
 
     // *
 
-    std::string _password = args.passwd;
-    size_t _stpassword = strlen(_password.c_str());
+    logc::notice("> enter password: ", "", '\0');
+
+    std::string _password = Utils::PasswordPrompt();
+    size_t _stpassword = _password.length();
 
     if (_stpassword <= crypto_pwhash_PASSWD_MIN || _stpassword >= crypto_pwhash_PASSWD_MAX) {
         logc::error("password length must be between: " + std::to_string(crypto_pwhash_PASSWD_MIN) + " ... " + std::to_string(crypto_pwhash_PASSWD_MAX));
@@ -65,7 +65,6 @@ int main(int argc, char* argv[]) {
     
     CryptoPP::SecByteBlock password((unsigned char*)_password.c_str(), _password.size());
 
-    sodium_memzero(&args.passwd, args.passwd.size());
     sodium_memzero(&_password, _password.size());
 
     if (sodium_mlock(password.data(), password.size())) {
