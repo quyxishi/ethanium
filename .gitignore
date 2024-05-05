@@ -1,5 +1,7 @@
 [Bb]uild/
 
+vcpkg_installed/
+
 ### C++ ###
 # Prerequisites
 *.d

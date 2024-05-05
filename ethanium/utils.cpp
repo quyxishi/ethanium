@@ -29,24 +29,20 @@ namespace Utils {
         while (true) {
             cpasswd = _getch();
 
-            if (cpasswd == RETURN_ASCII) {
-                break;
-            }
-
-            if (cpasswd == CONTROLC_ASCII) {
-                passwd = "";
-                break;
-            }
-
-            if (cpasswd == BACKSPACE_ASCII) {
-                if (passwd.length())
+            if (cpasswd < 32 || cpasswd > 126) {
+                if (cpasswd == BACKSPACE_ASCII && passwd.length())
                     passwd.pop_back();
 
+                if (cpasswd == RETURN_ASCII)
+                    break;
+
+                if (cpasswd == CONTROLC_ASCII) {
+                    passwd = "";
+                    break;
+                }
+
                 continue;
             }
-
-            if (cpasswd < 32 || cpasswd > 126)
-                continue;
 
             passwd.push_back((char)cpasswd);
         }
