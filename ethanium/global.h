@@ -15,4 +15,4 @@
 
 using namespace std::chrono;
 
-constexpr auto ETHANIUM_VERSION = "1.0.0";
+constexpr auto ETHANIUM_VERSION = "0.2.0";

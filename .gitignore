@@ -1,6 +1,7 @@
 [Bb]uild/
 
 vcpkg_installed/
+.vscode/
 
 ### C++ ###
 # Prerequisites

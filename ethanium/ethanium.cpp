@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
 
     // *
 
-    logc::notice("> enter password: ", "", '\0');
+    logc::notice(std::string("password for ") + (args.mode ? "de" : "en") + "cryption: ", "", '\0');
 
     std::string _password = Utils::PasswordPrompt();
     size_t _stpassword = _password.length();

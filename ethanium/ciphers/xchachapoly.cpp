@@ -31,7 +31,7 @@ namespace XChaChaPoly1305 {
 
         if ((rfilesize * 2) + 256 >= _memavail) {
             rfile.close();
-            return result{ 8, rfilesize, Crypto::FetchRuntime(runtimestart) };
+            return result{ 9, rfilesize, Crypto::FetchRuntime(runtimestart) };
         }
 
         // *
