@@ -9,3 +9,7 @@ cd .\ethanium\
 .\vcpkg\vcpkg integrate install
 .\ethanium.sln
 ```
+
+<p align="center">
+  <img src="https://github.com/quyxishi/ethanium/blob/df017b35fde99908ed8230260f8ecf66dfe94569/ethanium-img.png" width=70%>
+</p>
