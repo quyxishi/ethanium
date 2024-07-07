@@ -2,252 +2,234 @@
 
 #include <ciphers/xchachapoly.h>
 
-
 namespace XChaChaPoly1305 {
-    void _Cleanup(unsigned char* x[]) {
-        delete[] *x;
-    }
+	void Cleanup(unsigned char* x[]) {
+		delete[] *x;
+	}
 
-    void _Cleanup(unsigned char* x[], unsigned char* y[]) {
-        delete[] *x;
-        delete[] *y;
-    }
+	void Cleanup(unsigned char* x[], unsigned char* y[]) {
+		delete[] *x;
+		delete[] *y;
+	}
 
-    result _EncryptFile(const char* _absfilepath, CryptoPP::SecByteBlock &_key, CryptoPP::SecByteBlock &_salt, int _security, size_t _memavail) {
-        auto runtimestart = high_resolution_clock::now();
+	result _EncryptFile(const char* file_path, CryptoPP::SecByteBlock& key, CryptoPP::SecByteBlock& salt, int security, size_t mem_avail) {
+		auto entry_time = high_resolution_clock::now();
 
-        std::ifstream rfile(_absfilepath, std::ios::binary | std::ios::ate);
+		std::ifstream rfile(file_path, std::ios::binary | std::ios::ate);
 
-        if (!rfile.is_open()) {
-            return result{ 1, 0, Crypto::FetchRuntime(runtimestart) };
-        }
+		if (!rfile.is_open()) {
+			return result{ 1, 0, Crypto::FetchRuntime(entry_time) };
+		}
 
-        const size_t rfilesize = rfile.tellg();
+		const size_t rfile_size = rfile.tellg();
 
-        if (!rfilesize) {
-            rfile.close();
-            return result{ 6, rfilesize, Crypto::FetchRuntime(runtimestart) };
-        }
+		if (!rfile_size) {
+			rfile.close();
+			return result{ 6, rfile_size, Crypto::FetchRuntime(entry_time) };
+		}
 
-        if ((rfilesize * 2) + 256 >= _memavail) {
-            rfile.close();
-            return result{ 9, rfilesize, Crypto::FetchRuntime(runtimestart) };
-        }
+		if ((rfile_size * 2) + 256 >= mem_avail) {
+			rfile.close();
+			return result{ 9, rfile_size, Crypto::FetchRuntime(entry_time) };
+		}
 
-        // *
+		// *
 
-        CryptoPP::byte* plaint = new unsigned char[rfilesize];
-        CryptoPP::byte* ciphert = new unsigned char[rfilesize];
+		CryptoPP::byte* plain_buffer = new unsigned char[rfile_size];
+		CryptoPP::byte* cipher_buffer = new unsigned char[rfile_size];
 
-        rfile.seekg(0, std::ios::beg);
-        rfile.read((char*)plaint, rfilesize);
+		rfile.seekg(0, std::ios::beg);
+		rfile.read((char*)plain_buffer, rfile_size);
 
-        rfile.close();
+		rfile.close();
 
-        // *
+		// *
 
-        CryptoPP::SecByteBlock iv(24), aad(32), mac(16);
+		CryptoPP::SecByteBlock iv(24), aad(32), mac(16);
 
-        CryptoPP::OS_GenerateRandomBlock(false, iv, iv.size());
-        CryptoPP::OS_GenerateRandomBlock(false, aad, aad.size());
+		CryptoPP::OS_GenerateRandomBlock(false, iv, iv.size());
+		CryptoPP::OS_GenerateRandomBlock(false, aad, aad.size());
 
-        // *
+		// *
 
-        std::ofstream wfile(_absfilepath, std::ios::binary);
+		std::ofstream wfile(file_path, std::ios::binary);
 
-        if (!wfile.is_open()) {
-            _Cleanup(&plaint, &ciphert);
-            return result{ 5, rfilesize, Crypto::FetchRuntime(runtimestart) };
-        }
+		if (!wfile.is_open()) {
+			Cleanup(&plain_buffer, &cipher_buffer);
+			return result{ 5, rfile_size, Crypto::FetchRuntime(entry_time) };
+		}
 
-        wfile.write(header, stheader);
-        wfile << _security;
-        wfile.write((const char*)_salt.data(), _salt.size());
-        wfile.write((const char*)iv.data(), iv.size());
-        wfile.write((const char*)aad.data(), aad.size());
+		wfile.write(header, header_size);
+		wfile << security;
+		wfile.write((const char*)salt.data(), salt.size());
+		wfile.write((const char*)iv.data(), iv.size());
+		wfile.write((const char*)aad.data(), aad.size());
 
-        // *
+		// *
 
-        CryptoPP::XChaCha20Poly1305::Encryption xchachae;
-        xchachae.SetKeyWithIV(_key, _key.size(), iv, iv.size());
-        xchachae.EncryptAndAuthenticate(ciphert, mac, mac.size(), iv, (int)iv.size(), aad, aad.size(), plaint, rfilesize);
+		CryptoPP::XChaCha20Poly1305::Encryption xchachapoly;
+		xchachapoly.SetKeyWithIV(key, key.size(), iv, iv.size());
+		xchachapoly.EncryptAndAuthenticate(cipher_buffer, mac, mac.size(), iv, (int)iv.size(), aad, aad.size(), plain_buffer, rfile_size);
 
-        _Cleanup(&plaint);
+		Cleanup(&plain_buffer);
 
-        // *
+		// *
 
-        CryptoPP::byte* wbuf = new unsigned char[Crypto::buffersize];
-        size_t stwritted = 0, towrite;
+		CryptoPP::byte* write_buffer = new unsigned char[Crypto::buffer_size];
+		size_t writted_size = 0, chunk_size;
 
-        int ibuf;
+		while (writted_size != rfile_size) {
+			chunk_size = std::min(rfile_size - writted_size, (size_t)Crypto::buffer_size);
 
-        while (stwritted != rfilesize) {
-            towrite = (Crypto::buffersize <= (rfilesize - stwritted)) ? Crypto::buffersize : rfilesize - stwritted;
-            ibuf = 0;
+			for (size_t i = writted_size; i < (writted_size + chunk_size); i++) {
+				write_buffer[i - writted_size] = cipher_buffer[i];
+			}
 
-            for (size_t i = stwritted; i < (stwritted + towrite); i++) {
-                wbuf[ibuf] = ciphert[i];
-                ibuf++;
-            }
+			wfile.write((char*)write_buffer, chunk_size);
+			writted_size += chunk_size;
+		}
 
-            wfile.write((char*)wbuf, towrite);
+		Cleanup(&write_buffer);
 
-            stwritted += towrite;
-        }
+		wfile.write((char*)mac.data(), mac.size());
+		wfile.close();
 
-        _Cleanup(&wbuf);
+		// *
 
-        wfile.write((char*)mac.data(), mac.size());
-        wfile.close();
+		Cleanup(&cipher_buffer);
 
-        // *
+		return result{ 0, rfile_size, Crypto::FetchRuntime(entry_time) };
+	}
 
-        _Cleanup(&ciphert);
+	result _DecryptFile(const char* file_path, CryptoPP::SecByteBlock& password, size_t mem_avail) {
+		auto entry_time = high_resolution_clock::now();
 
-        return result{ 0, rfilesize, Crypto::FetchRuntime(runtimestart) };
-    }
+		std::ifstream rfile(file_path, std::ios::binary | std::ios::ate);
 
+		if (!rfile.is_open()) {
+			return result{ 1, 0, Crypto::FetchRuntime(entry_time) };
+		}
 
-    result _DecryptFile(const char* _absfilepath, CryptoPP::SecByteBlock &_password, size_t _memavail) {
-        auto runtimestart = high_resolution_clock::now();
+		const size_t rfile_size = rfile.tellg(), rfile_data_size = rfile_size - ((size_t)89 + header_size);
 
-        std::ifstream rfile(_absfilepath, std::ios::binary | std::ios::ate);
+		if (!rfile_size) {
+			rfile.close();
+			return result{ 6, rfile_size, Crypto::FetchRuntime(entry_time) };
+		}
 
-        if (!rfile.is_open()) {
-            return result{ 1, 0, Crypto::FetchRuntime(runtimestart) };
-        }
+		if (rfile_size < ((size_t)90 + header_size)) {
+			rfile.close();
+			return result{ 7, rfile_size, Crypto::FetchRuntime(entry_time) };
+		}
 
-        const size_t rfilesize = rfile.tellg(), rfiledsize = rfilesize - ((size_t)89 + stheader);
+		char header_buffer[header_size]{};
 
-        if (!rfilesize) {
-            rfile.close();
-            return result{ 6, rfilesize, Crypto::FetchRuntime(runtimestart) };
-        }
+		rfile.seekg(0, std::ios::beg);
+		rfile.read(header_buffer, header_size);
 
-        if (rfilesize < ((size_t)90 + stheader)) {
-            rfile.close();
-            return result{ 7, rfilesize, Crypto::FetchRuntime(runtimestart) };
-        }
+		if (strcmp(header_buffer, header)) {
+			rfile.close();
+			return result{ 7, rfile_size, Crypto::FetchRuntime(entry_time) };
+		}
 
-        char bufh[stheader]{};
+		char security_char;
+		rfile.get(security_char);
+		int security = security_char - '0';
 
-        rfile.seekg(0, std::ios::beg);
-        rfile.read(bufh, stheader);
+		if (security < 0 || security > 2) {
+			rfile.close();
+			return result{ 8, rfile_size, Crypto::FetchRuntime(entry_time) };
+		}
 
-        if (strcmp(bufh, header)) {
-            rfile.close();
-            return result{ 7, rfilesize, Crypto::FetchRuntime(runtimestart) };
-        }
-        
-        char _csecurity;
-        rfile.get(_csecurity);
-        int _security = _csecurity - '0';
+		if ((rfile_size * 2) + Crypto::pw_mem_limit[security] + 256 >= mem_avail) {
+			rfile.close();
+			return result{ 9, rfile_size, Crypto::FetchRuntime(entry_time) };
+		}
 
-        if (_security < 0 || _security > 2) {
-            rfile.close();
-            return result{ 8, rfilesize, Crypto::FetchRuntime(runtimestart) };
-        }
+		// *
 
-        if ((rfilesize * 2) + Crypto::pwmemlimit[_security] + 256 >= _memavail) {
-            rfile.close();
-            return result{ 9, rfilesize, Crypto::FetchRuntime(runtimestart) };
-        }
+		CryptoPP::byte* retrieve_buffer = new unsigned char[rfile_data_size];
+		CryptoPP::byte* cipher_buffer = new unsigned char[rfile_data_size];
 
-        // *
-
-        CryptoPP::byte* retrievet = new unsigned char[rfiledsize];
-        CryptoPP::byte* ciphert = new unsigned char[rfiledsize];
-
-        CryptoPP::SecByteBlock key(32), salt(16), iv(24), aad(32), mac(16);
+		CryptoPP::SecByteBlock key(32), salt(16), iv(24), aad(32), mac(16);
 
 #ifndef SUPPRESS_MLOCK
-        if (sodium_mlock(key.data(), key.size())) {
-            _Cleanup(&retrievet, &ciphert);
-            return result{ 10, 0, Crypto::FetchRuntime(runtimestart) };
-        }
+		if (sodium_mlock(key.data(), key.size())) {
+			Cleanup(&retrieve_buffer, &cipher_buffer);
+			return result{ 10, 0, Crypto::FetchRuntime(entry_time) };
+		}
 #endif
 
-        rfile.read((char*)salt.data(), salt.size());
-        rfile.read((char*)iv.data(), iv.size());
-        rfile.read((char*)aad.data(), aad.size());
+		rfile.read((char*)salt.data(), salt.size());
+		rfile.read((char*)iv.data(), iv.size());
+		rfile.read((char*)aad.data(), aad.size());
 
-        // *
+		// *
 
-        int argonidstat = Crypto::DeriveKeyFromSalt(key, salt, _password, _security);
-
-        if (argonidstat) {
-            rfile.close();
+		if (Crypto::DeriveKeyFromSalt(key, salt, password, security)) {
+			rfile.close();
 
 #ifndef SUPPRESS_MLOCK
-            sodium_munlock(key.data(), key.size());
+			sodium_munlock(key.data(), key.size());
 #endif
 
-            _Cleanup(&retrievet, &ciphert);
+			Cleanup(&retrieve_buffer, &cipher_buffer);
+			return result{ 2, rfile_size, Crypto::FetchRuntime(entry_time) };
+		}
 
-            return result{ 2, rfilesize, Crypto::FetchRuntime(runtimestart) };
-        }
+		// *
 
-        // *
+		rfile.read((char*)cipher_buffer, rfile_data_size);
+		rfile.read((char*)mac.data(), mac.size());
+		rfile.close();
 
-        rfile.read((char*)ciphert, rfiledsize);
-        rfile.read((char*)mac.data(), mac.size());
-        rfile.close();
-
-        bool decstatus;
-
-        CryptoPP::XChaCha20Poly1305::Decryption xchacha;
-        xchacha.SetKeyWithIV(key, key.size(), iv, iv.size());
-        decstatus = xchacha.DecryptAndVerify(retrievet, mac, mac.size(), iv, (int)iv.size(), aad, aad.size(), ciphert, rfiledsize);
+		CryptoPP::XChaCha20Poly1305::Decryption xchacha;
+		xchacha.SetKeyWithIV(key, key.size(), iv, iv.size());
+		bool decryption_status = xchacha.DecryptAndVerify(retrieve_buffer, mac, mac.size(), iv, (int)iv.size(), aad, aad.size(), cipher_buffer, rfile_data_size);
 
 #ifndef SUPPRESS_MLOCK
-        sodium_munlock(key.data(), key.size());
+		sodium_munlock(key.data(), key.size());
 #endif
 
-        if (!decstatus) {
-            _Cleanup(&retrievet, &ciphert);
-            return result{ 3, rfilesize, Crypto::FetchRuntime(runtimestart) };
-        }
+		if (!decryption_status) {
+			Cleanup(&retrieve_buffer, &cipher_buffer);
+			return result{ 3, rfile_size, Crypto::FetchRuntime(entry_time) };
+		}
 
-        _Cleanup(&ciphert);
+		Cleanup(&cipher_buffer);
 
-        // *
+		// *
 
-        std::ofstream wfile(_absfilepath, std::ios::binary | std::ios::trunc);
+		std::ofstream wfile(file_path, std::ios::binary | std::ios::trunc);
 
-        if (!wfile.is_open()) {
-            _Cleanup(&retrievet);
-            return result{ 4, rfilesize, Crypto::FetchRuntime(runtimestart) };
-        }
+		if (!wfile.is_open()) {
+			Cleanup(&retrieve_buffer);
+			return result{ 4, rfile_size, Crypto::FetchRuntime(entry_time) };
+		}
 
-        // *
+		// *
 
-        CryptoPP::byte* wbuf = new unsigned char[Crypto::buffersize];
-        size_t stwritted = 0, towrite;
+		CryptoPP::byte* write_buffer = new unsigned char[Crypto::buffer_size];
+		size_t writted_size = 0, chunk_size;
 
-        int ibuf;
+		while (writted_size != rfile_data_size) {
+			chunk_size = std::min(rfile_data_size - writted_size, (size_t)Crypto::buffer_size);
 
-        while (stwritted != rfiledsize) {
-            towrite = (Crypto::buffersize <= (rfiledsize - stwritted)) ? Crypto::buffersize : rfiledsize - stwritted;
-            ibuf = 0;
+			for (size_t i = writted_size; i < (writted_size + chunk_size); i++) {
+				write_buffer[i - writted_size] = retrieve_buffer[i];
+			}
 
-            for (size_t i = stwritted; i < (stwritted + towrite); i++) {
-                wbuf[ibuf] = retrievet[i];
-                ibuf++;
-            }
+			wfile.write((char*)write_buffer, chunk_size);
+			writted_size += chunk_size;
+		}
 
-            wfile.write((char*)wbuf, towrite);
+		Cleanup(&write_buffer);
+		wfile.close();
 
-            stwritted += towrite;
-        }
-        
-        _Cleanup(&wbuf);
+		// *
 
-        wfile.close();
+		Cleanup(&retrieve_buffer);
 
-        // *
-
-        _Cleanup(&retrievet);
-
-        return result{ 0, rfilesize, Crypto::FetchRuntime(runtimestart) };
-    }
+		return result{ 0, rfile_size, Crypto::FetchRuntime(entry_time) };
+	}
 }

@@ -8,10 +8,10 @@
 #include <thread>
 #include <conio.h>
 
+#define NOMINMAX
 #include <windows.h>
 
-#include <log.h>
-
+#include <cli.h>
 
 using namespace std::chrono;
 

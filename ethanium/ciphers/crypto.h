@@ -8,19 +8,18 @@
 #include <cryptopp/osrng.h>
 #include <cryptopp/secblock.h>
 
-
-const short stheader = 12;
-const char header[stheader] = ";ethanium//";
+const short header_size = 12;
+const char header[header_size] = ";ethanium//";
 
 namespace Crypto {
-	extern const char* errorslist[];
+	extern const char* errors[];
 
-	const int buffersize = 1024 * 128;
+	const int buffer_size = 1024 * 128;
 
-	extern unsigned int pwopslimit[];
-	extern unsigned int pwmemlimit[];
+	extern unsigned int pw_ops_limit[];
+	extern unsigned int pw_mem_limit[];
 
-	int DeriveKeyAndSalt(CryptoPP::SecByteBlock &key, CryptoPP::SecByteBlock &salt, CryptoPP::SecByteBlock &_password, int security = 2);
-	int DeriveKeyFromSalt(CryptoPP::SecByteBlock &key, CryptoPP::SecByteBlock &salt, CryptoPP::SecByteBlock &_password, int security = 2);
+	int DeriveKeyAndSalt(CryptoPP::SecByteBlock& key, CryptoPP::SecByteBlock& salt, CryptoPP::SecByteBlock& _password, int security = 2);
+	int DeriveKeyFromSalt(CryptoPP::SecByteBlock& key, CryptoPP::SecByteBlock& salt, CryptoPP::SecByteBlock& _password, int security = 2);
 	milliseconds FetchRuntime(steady_clock::time_point& timestart);
 }

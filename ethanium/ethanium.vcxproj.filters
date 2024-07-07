@@ -21,7 +21,7 @@
     <ClCompile Include="ciphers\xchachapoly.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="log.cpp">
+    <ClCompile Include="cli.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ciphers\crypto.cpp">
@@ -44,7 +44,7 @@
     <ClInclude Include="ciphers\xchachapoly.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="log.h">
+    <ClInclude Include="cli.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="args.h">

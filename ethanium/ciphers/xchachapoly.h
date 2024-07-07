@@ -4,17 +4,16 @@
 
 #include <cryptopp/chachapoly.h>
 
-
 namespace XChaChaPoly1305 {
 	struct result {
-		int statuscode;
-		size_t fsize;
-		milliseconds runtimems;
+		int code;
+		size_t file_size;
+		milliseconds elapsed_ms;
 	};
 
-	void _Cleanup(unsigned char* x[]);
-	void _Cleanup(unsigned char* x[], unsigned char* y[]);
+	void Cleanup(unsigned char* x[]);
+	void Cleanup(unsigned char* x[], unsigned char* y[]);
 
-	result _EncryptFile(const char* _absfilepath, CryptoPP::SecByteBlock &_key, CryptoPP::SecByteBlock &_salt, int _security, unsigned long long _memavail);
-	result _DecryptFile(const char* _absfilepath, CryptoPP::SecByteBlock &_password, unsigned long long _memavail);
+	result _EncryptFile(const char* file_path, CryptoPP::SecByteBlock& key, CryptoPP::SecByteBlock& salt, int security, size_t mem_avail);
+	result _DecryptFile(const char* file_path, CryptoPP::SecByteBlock& password, size_t mem_avail);
 }

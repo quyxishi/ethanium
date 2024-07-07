@@ -4,149 +4,144 @@
 #include <utils.h>
 #include <ciphers/xchachapoly.h>
 
-
 int main(int argc, char* argv[]) {
-    ArgsParser argsparser;
+	ArgsParser args_parser;
 
-    bool argstat = argsparser.StructArgs(argc, argv);
+	if (!args_parser.StructArgs(argc, argv)) {
+		return -1;
+	}
 
-    if (!argstat)
-        return -1;
+	ETHANIUM_ARGS args = args_parser.GetArgs();
 
-    ETHANIUM_ARGS args = argsparser.GetArgs();
-    
-    if (args.help) {
-        std::cout << ETHANIUM_HELP << std::endl;
-        return 0;
-    }
+	if (args.help) {
+		std::cout << ETHANIUM_HELP << std::endl;
+		return 0;
+	}
 
-    logc::notice(std::string("@ ethanium ") + ETHANIUM_VERSION);
+	cli::notice(std::string("@ ethanium ") + ETHANIUM_VERSION);
 
-    // *
+	// *
 
-    std::vector<std::string> files;
+	std::vector<std::string> files;
 
-    const char* fpath;
-    char absfpath[MAX_PATH]{};
+	const char* file_path;
+	char abs_file_path[MAX_PATH]{};
 
-    for (size_t i = 0; i < args.filescount; i++) {
-        fpath = args.filesv[i];
+	for (size_t i = 0; i < args.files_count; i++) {
+		file_path = args.files[i];
 
-        if (!Utils::IsFileExists(fpath)) {
-            logc::warn("system cannot find file specified:", fpath);
-        } else {
-            if (!GetFullPathNameA(fpath, MAX_PATH, absfpath, NULL)) {
-                logc::error("failed to get absolute path for:", fpath);
-                return -2;
-            }
+		if (!Utils::IsFileExists(file_path)) {
+			cli::warn("system cannot find file specified:", file_path);
+		}
+		else {
+			if (!GetFullPathNameA(file_path, MAX_PATH, abs_file_path, NULL)) {
+				cli::error("failed to get absolute path for:", file_path);
+				return -2;
+			}
 
-            files.push_back(absfpath);
-        }
-    }
+			files.push_back(abs_file_path);
+		}
+	}
 
-    size_t filescount = files.size();
+	if (!files.size()) {
+		cli::notice("nothing to do");
+		return 0;
+	}
 
-    if (!filescount) {
-        logc::notice("nothing to do");
-        return 0;
-    }
+	// *
 
-    // *
+	cli::notice(std::string("password for ") + (args.mode ? "de" : "en") + "cryption: ", "", '\0');
 
-    logc::notice(std::string("password for ") + (args.mode ? "de" : "en") + "cryption: ", "", '\0');
+	std::string _password = Utils::PasswordPrompt();
+	size_t _password_len = _password.length();
 
-    std::string _password = Utils::PasswordPrompt();
-    size_t _stpassword = _password.length();
+	if (_password_len <= crypto_pwhash_PASSWD_MIN || _password_len >= crypto_pwhash_PASSWD_MAX) {
+		cli::error("password length must be between: " + std::to_string(crypto_pwhash_PASSWD_MIN) + ".." + std::to_string(crypto_pwhash_PASSWD_MAX));
+		return -2;
+	}
 
-    if (_stpassword <= crypto_pwhash_PASSWD_MIN || _stpassword >= crypto_pwhash_PASSWD_MAX) {
-        logc::error("password length must be between: " + std::to_string(crypto_pwhash_PASSWD_MIN) + " ... " + std::to_string(crypto_pwhash_PASSWD_MAX));
-        return -2;
-    }
-    
-    CryptoPP::SecByteBlock password((unsigned char*)_password.c_str(), _password.size());
+	CryptoPP::SecByteBlock password((unsigned char*)_password.c_str(), _password.size());
 
-    sodium_memzero(&_password, _password.size());
+	sodium_memzero(&_password, _password.size());
 
-    if (sodium_mlock(password.data(), password.size())) {
-        logc::error("failed to mlock password");
-        return -3;
-    }
+	if (sodium_mlock(password.data(), password.size())) {
+		cli::error("failed to mlock password");
+		return -3;
+	}
 
-    // *
+	// *
 
-    MEMORYSTATUSEX memstatus{};
-    memstatus.dwLength = sizeof(memstatus);
+	MEMORYSTATUSEX memory_status{};
+	memory_status.dwLength = sizeof(memory_status);
 
-    if (!GlobalMemoryStatusEx(&memstatus)) {
-        logc::error("failed to retrieve available memory");
-        return -5;
-    }
+	if (!GlobalMemoryStatusEx(&memory_status)) {
+		cli::error("failed to retrieve available memory");
+		return -5;
+	}
 
-    // *
+	// *
 
-    CryptoPP::SecByteBlock key(32), salt(16);
+	CryptoPP::SecByteBlock key(32), salt(16);
 
-    if (!args.mode) {
-        if (sodium_mlock(key.data(), key.size())) {
-            logc::error("failed to mlock key");
-            return -3;
-        }
+	if (!args.mode) {
+		if (sodium_mlock(key.data(), key.size())) {
+			cli::error("failed to mlock key");
+			return -3;
+		}
 
-        // *
+		// *
 
-        if (memstatus.ullAvailPhys <= Crypto::pwmemlimit[args.security]) {
-            logc::error("not enough memory for key derivation");
-            return -5;
-        }
+		if (memory_status.ullAvailPhys <= Crypto::pw_mem_limit[args.security]) {
+			cli::error("not enough memory for key derivation");
+			return -5;
+		}
 
-        if (!args.meshkey) {
-            logc::notice("deriving key from password ... ", "", '\0');
+		if (!args.mesh_key) {
+			cli::notice("deriving key from password ... ", "", '\0');
 
-            int argonidstat = Crypto::DeriveKeyAndSalt(key, salt, password, args.security);
+			if (Crypto::DeriveKeyAndSalt(key, salt, password, args.security)) {
+				std::cout << "failed" << std::endl;
+				return -4;
+			}
 
-            if (argonidstat) {
-                std::cout << "failed" << std::endl;
-                return -4;
-            }
+			std::cout << "ok" << std::endl;
 
-            std::cout << "ok" << std::endl;
+			sodium_munlock(password.data(), password.size());
+		}
+	}
 
-            sodium_munlock(password.data(), password.size());
-        }
-    }
+	// *
 
-    // *
+	cli::notice(((args.mode) ? "# decrypting " : "# encrypting ") + std::to_string(files.size()) + " file(s) \\ " + std::to_string(args.files_count - files.size()) + " file(s) skipped");
 
-    logc::notice(((args.mode) ? "# decrypting " : "# encrypting ") + std::to_string(filescount) + " file(s) \\ " + std::to_string(args.filescount - filescount) + " file(s) skipped");
+	XChaChaPoly1305::result status;
+	auto entry_time = high_resolution_clock::now();
 
-    XChaChaPoly1305::result status;
-    auto runtimestart = high_resolution_clock::now();
+	for (auto file_iter = files.begin(); file_iter != files.end(); ++file_iter) {
+		std::string file = *file_iter;
 
-    for (auto it = files.begin(); it != files.end(); ++it) {
-        std::string sit = *it;
+		if (!args.mode && args.mesh_key) {
+			cli::notice("deriving key from password ... ", "", '\0');
 
-        if (!args.mode && args.meshkey) {
-            logc::notice("deriving key from password ... ", "", '\0');
+			if (Crypto::DeriveKeyAndSalt(key, salt, password, args.security)) {
+				std::cout << "failed" << std::endl;
+				continue;
+			}
 
-            int argonidstat = Crypto::DeriveKeyAndSalt(key, salt, password, args.security);
+			std::cout << "ok" << std::endl;
+		}
 
-            if (argonidstat) {
-                std::cout << "failed" << std::endl;
-                continue;
-            }
+		status = (args.mode) ? XChaChaPoly1305::_DecryptFile(file.c_str(), password, memory_status.ullAvailPhys) : XChaChaPoly1305::_EncryptFile(file.c_str(), key, salt, args.security, memory_status.ullAvailPhys);
+		std::cout << ((args.mode) ? "[d] " : "[e] ") << Crypto::errors[status.code] << " :: " << Utils::SplitDot(status.file_size) << " bytes, " << Utils::SplitDot(status.elapsed_ms.count()) << " ms :: " << *file_iter << std::endl;
+	}
 
-            std::cout << "ok" << std::endl;
-        }
+	if (args.mesh_key) {
+		sodium_munlock(password.data(), password.size());
+	}
 
-        status = (args.mode) ? XChaChaPoly1305::_DecryptFile(sit.c_str(), password, memstatus.ullAvailPhys) : XChaChaPoly1305::_EncryptFile(sit.c_str(), key, salt, args.security, memstatus.ullAvailPhys);
-        std::cout << ((args.mode) ? "[d] " : "[e] ") << Crypto::errorslist[status.statuscode] << " :: " << Utils::SplitDot(status.fsize) << " bytes, " << Utils::SplitDot(status.runtimems.count()) << " ms :: " << *it << std::endl;
-    }
+	if (!args.mode) {
+		sodium_munlock(key.data(), key.size());
+	}
 
-    if (args.meshkey)
-        sodium_munlock(password.data(), password.size());
-
-    if (!args.mode)
-        sodium_munlock(key.data(), key.size());
-
-    logc::notice("# elapsed: " + Utils::SplitDot(Crypto::FetchRuntime(runtimestart).count()) + " ms");
+	cli::notice("# elapsed: " + Utils::SplitDot(Crypto::FetchRuntime(entry_time).count()) + " ms");
 }
