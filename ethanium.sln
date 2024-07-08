@@ -7,24 +7,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ethanium", "ethanium\ethani
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|x64 = Debug|x64
-		Debug|x86 = Debug|x86
-		DLL-Import Debug|x64 = DLL-Import Debug|x64
-		DLL-Import Debug|x86 = DLL-Import Debug|x86
 		DLL-Import Release|x64 = DLL-Import Release|x64
 		DLL-Import Release|x86 = DLL-Import Release|x86
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{573EBA73-EA95-49A2-A68C-26A69779C5C8}.Debug|x64.ActiveCfg = Debug|x64
-		{573EBA73-EA95-49A2-A68C-26A69779C5C8}.Debug|x64.Build.0 = Debug|x64
-		{573EBA73-EA95-49A2-A68C-26A69779C5C8}.Debug|x86.ActiveCfg = Debug|Win32
-		{573EBA73-EA95-49A2-A68C-26A69779C5C8}.Debug|x86.Build.0 = Debug|Win32
-		{573EBA73-EA95-49A2-A68C-26A69779C5C8}.DLL-Import Debug|x64.ActiveCfg = Debug|x64
-		{573EBA73-EA95-49A2-A68C-26A69779C5C8}.DLL-Import Debug|x64.Build.0 = Debug|x64
-		{573EBA73-EA95-49A2-A68C-26A69779C5C8}.DLL-Import Debug|x86.ActiveCfg = Debug|Win32
-		{573EBA73-EA95-49A2-A68C-26A69779C5C8}.DLL-Import Debug|x86.Build.0 = Debug|Win32
 		{573EBA73-EA95-49A2-A68C-26A69779C5C8}.DLL-Import Release|x64.ActiveCfg = Release|x64
 		{573EBA73-EA95-49A2-A68C-26A69779C5C8}.DLL-Import Release|x64.Build.0 = Release|x64
 		{573EBA73-EA95-49A2-A68C-26A69779C5C8}.DLL-Import Release|x86.ActiveCfg = Release|Win32

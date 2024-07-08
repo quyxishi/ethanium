@@ -2,11 +2,11 @@
     "dependencies": [
         {
             "name": "cryptopp",
-            "platform": "(windows & x64 & static) | (windows & x86 & static)"
+            "platform": "windows & static"
         },
         {
             "name": "libsodium",
-            "platform": "(windows & x64 & static) | (windows & x86 & static)"
+            "platform": "windows & static"
         }
     ]
 }
